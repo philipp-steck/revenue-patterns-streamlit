@@ -3,10 +3,10 @@ This repository contains a python streamlit application that computes different 
 to analyse customer's revenue patterns and how they evolve over time.
 
 ## Deployed app
-Click here to go to the deployed revenue patterns analysis tool
+Click here to go to the deployed [revenue patterns analysis](https://revenue-patterns.streamlit.app/) tool
 
 ## Blog article
-Have a look at the accompanying blog post for more details.
+Have a look at the accompanying [blog post](https://churney.io/posts/pltv-isn-t-for-everyone-is-it-for-you) for more details.
 
 ## Features
 - **Data upload**: Easily upload a CSV file to start analysis
