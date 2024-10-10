@@ -8,15 +8,15 @@ def page_config():
     )
     page_2 = st.Page(
         page="pages/page_2.py",
-        title="Correlation Matrix",
+        title="Short to long-term overall revenue correlation",
     )
     page_3 = st.Page(
         page="pages/page_3.py",
-        title="Development Plot",
+        title="Post-Optimization Conversions",
     )
     page_4 = st.Page(
         page="pages/page_4.py",
-        title="Day Comparison Plot",
+        title="User Value Re-Ranking",
     )
     return [page_1, page_2, page_3, page_4]
 
