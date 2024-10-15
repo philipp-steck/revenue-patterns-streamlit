@@ -23,7 +23,7 @@ def plot_3(df_aggregate_payments, days_list):
         )
 
     bins = np.linspace(0, 1, 11)  # 10 bins from 0% to 100%
-    labels = [f'{int(bins[i]*100)}-{int(bins[i+1]*100)}%' for i in range(len(bins)-1)]
+    labels = [f'{int(bins[i]*100)}-{int(bins[i+1]*100)}' for i in range(len(bins)-1)]
 
     df_aggregate_payments = df_aggregate_payments.sample(frac=1, random_state=42).reset_index(drop=True)
     temp_reference = df_aggregate_payments[df_aggregate_payments[f'D{reference}'] > 0].copy()
@@ -41,7 +41,7 @@ def plot_3(df_aggregate_payments, days_list):
     )
 
     heatmap_data = heatmap_data.loc[labels[::-1], labels]
-    heatmap_data = (heatmap_data * 100).round(3)
+    heatmap_data = heatmap_data * 10
 
     # Plot the heatmap
     fig, ax = plt.subplots(figsize=(10,8))
