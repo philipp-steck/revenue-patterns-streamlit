@@ -41,6 +41,7 @@ def plot_3(df_aggregate_payments, days_list):
     )
 
     heatmap_data = heatmap_data.loc[labels[::-1], labels]
+    heatmap_data = (heatmap_data * 100).round(3)
 
     # Plot the heatmap
     fig, ax = plt.subplots(figsize=(10,8))
@@ -48,7 +49,7 @@ def plot_3(df_aggregate_payments, days_list):
         heatmap_data,
         annot=True,
         cmap='Purples',
-        cbar_kws={'shrink':0.75,'label': 'Correlation Score'})
+        cbar_kws={'shrink':0.75,'label': 'Movement between percentiles'})
 
     plt.xlabel(f'Lookahead: Percentile rank of the same users after D{lookahead}')
     plt.ylabel(f'Reference: Initial percentile Rank of users on D{reference}')
