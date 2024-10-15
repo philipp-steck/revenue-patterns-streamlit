@@ -88,7 +88,7 @@ with st.expander("Data Requirements and Guidelines"):
         - Columns
             - `user_id`: *string*
             - `timestamp`: *datetime*
-            - `is_activation`: *boolean*
+            - `is_activation`: *int* (0 or 1)
             - `value`: *float*
         - Rows
             - Each row represents a unique event
