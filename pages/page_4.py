@@ -49,7 +49,7 @@ def plot_3(df_aggregate_payments, days_list):
         heatmap_data,
         annot=True,
         cmap='Purples',
-        cbar_kws={'shrink':0.75,'label': 'Movement between percentiles'})
+        cbar_kws={'shrink':0.75,'label': 'Movement between percentiles (%)'})
 
     plt.xlabel(f'Lookahead: Percentile rank of the same users after D{lookahead}')
     plt.ylabel(f'Reference: Initial percentile Rank of users on D{reference}')
