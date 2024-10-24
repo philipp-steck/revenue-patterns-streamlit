@@ -68,7 +68,7 @@ def prepare_plots(df):
     return df_aggregate_payments, days_list
 
 st.set_page_config(
-    initial_sidebar_state="collapsed" 
+    initial_sidebar_state="expanded" 
 )
 
 # st.title("How relevant is pLTV for you?")
@@ -83,7 +83,7 @@ if 'data' not in st.session_state:
 
 table_schema = st.radio("Select a table schema", ["Firebase exported through BQ", "Other data sources & schemas"], index=None) # AppsFlyer raw data export
 
-if table_schema == "Google BigQuery":
+if table_schema == "Firebase exported through BQ":
     with st.expander("Create BigQuery code to generate data that can be used in the analysis tool", expanded=True):
         event_list = st.text_input(
             label="Event names (comma-separated and enclosed in single quotes e.g. `'payment_event'`)",
@@ -185,7 +185,7 @@ if table_schema == "Google BigQuery":
         st.code(path, language='sql')
         st.markdown("")
 
-elif table_schema == "Other":
+elif table_schema == "Other data sources & schemas":
     with st.expander("Data Requirements and Guidelines", expanded=True):
         st.markdown("""
             To ensure the analysis runs smoothly with your own dataset, please make sure your data meets the following criteria:
