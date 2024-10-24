@@ -85,17 +85,12 @@ table_schema = st.radio("Select a table schema", ["Firebase exported through BQ"
 
 if table_schema == "Firebase exported through BQ":
     with st.expander("Create BigQuery code to generate data that can be used in the analysis tool", expanded=True):
-        event_list = st.text_input(
-            label="Event names (comma-separated and enclosed in single quotes e.g. `'payment_event'`)",
-            value='',
-            # help="List all events you want to include in the analysis, separated by commas and enclosed in single quotes."
-        )
         table_name = st.text_input(
             label="Source table (e.g. `project_name.dataset_name.table_name`)",
             value='',
             # help="Enter the ID of the source table that contains the data you would like to analyze."
         )
-
+             
         sampling_on = st.toggle("Adjust sample size", False)
         if sampling_on:
             percentage = st.slider(
@@ -116,35 +111,45 @@ if table_schema == "Firebase exported through BQ":
             # Column Name Inputs
             user_id = st.text_input(
                 label="User ID Column",
-                value='__user_id',
+                value='user_id',
                 # help="Enter the column name that represents the `user_id` in your data table."
             )
             timestamp = st.text_input(
                 label="Timestamp Column",
-                value='__timestamp',
+                value='event_timestamp',
                 # help="Enter the column name that represents the timestamp in your data table."
             )
             first_touchpoint = st.text_input(
                 label="First Touchpoint Column",
-                value='__first_touchpoint',
+                value='user_first_touch_timestamp',
                 # help="Enter the column name that represents the first touchpoint in your data table."
             )
             event = st.text_input(
                 label="Event Column",
-                value='__event',
+                value='event_name',
                 # help="Enter the column name that represents the event in your data table."
             )
             value = st.text_input(
                 label="Value Column",
-                value='__value',
+                value='event_value_in_usd',
                 # help="Enter the column name that represents the value in your data table."
             )
         else:
-            user_id = '__user_id'
-            timestamp = '__timestamp'
-            first_touchpoint = '__first_touchpoint'
-            event = '__event'
-            value = '__value'
+            user_id = 'user_id'
+            timestamp = 'event_timestamp'
+            first_touchpoint = 'user_first_touch_timestamp'
+            event = 'event_name'
+            value = 'event_value_in_usd'
+
+        anchor_on = st.toggle("Include custom anchoring events", False)
+        if anchor_on:
+            anchoring_event = st.text_input(
+            label="Event names (comma-separated and enclosed in single quotes e.g. `'trial_start'`)",
+            value=''
+            )
+            anchoring_event = f"({event} IN ({anchoring_event}) OR ({value} != 0 OR {value} IS NOT NULL))"
+        else: 
+            anchoring_event = f"({value} != 0 OR {value} IS NOT NULL)"
 
         path = f'''
         WITH filtered_data AS (
@@ -157,27 +162,27 @@ if table_schema == "Firebase exported through BQ":
         FROM `{table_name}`
         WHERE {timestamp} BETWEEN TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 365 DAY) 
             AND TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 DAY)
-            AND {event} IN ({event_list})
             AND TIMESTAMP_MICROS({first_touchpoint}) >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 365 DAY)
+            AND {anchoring_event}
         ),
 
         sample_users AS (
         SELECT DISTINCT
-            {user_id}
+            user_id
         FROM filtered_data
-        GROUP BY {user_id}
+        GROUP BY user_id
         HAVING RAND() < {percentage}
         )
 
         SELECT DISTINCT
-            {user_id} AS user_id,
-            {timestamp} AS timestamp,
-            TIMESTAMP_MICROS({first_touchpoint}) AS first_touchpoint,
-            {event} AS event,
-            {value} AS value,
+            user_id,
+            timestamp,
+            first_touchpoint,
+            event,
+            value,
         FROM filtered_data source_table
         JOIN sample_users
-        USING ({user_id})
+        USING (user_id)
         '''
         
         st.write('')
