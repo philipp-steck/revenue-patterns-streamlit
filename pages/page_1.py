@@ -84,7 +84,7 @@ if 'data' not in st.session_state:
 table_schema = st.radio("Select a table schema", ["Firebase exported through BQ", "Other data sources & schemas"], index=None) # AppsFlyer raw data export
 
 if table_schema == "Firebase exported through BQ":
-    with st.expander("Create BigQuery code to generate data that can be used in the analysis tool", expanded=True):
+    with st.expander("Generate a BQ query for easy upload and analysis", expanded=True):
         table_name = st.text_input(
             label="Source table (e.g. `project_name.dataset_name.table_name`)",
             value='',
