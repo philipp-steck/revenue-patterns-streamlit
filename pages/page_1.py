@@ -72,21 +72,27 @@ st.set_page_config(
 )
 
 # st.title("How relevant is pLTV for you?")
-# st.markdown("""
-#    This tool analyses if your business potentially benefit from pLTV modeling.
-#    It demonstrates how users revenue patterns evolve over time and show how effectively optimizing on it can have a large impact on your average user revenue.
-# """)
 st.markdown("#### Let's get started with the analysis!")
+st.markdown("""
+        This tool analyzes whether your business could potentially benefit from pLTV modeling. 
+        It demonstrates how user revenue patterns evolve over time and shows how effectively optimizing for this can have a significant impact on your average user revenue. 
+        We support some standard schemas and can help you wish querying your own data.
+        """)
 
 if 'data' not in st.session_state:
     st.session_state['data'] = None
 
-table_schema = st.radio("Select a table schema", ["Firebase exported through BQ", "Other data sources & schemas"], index=None) # AppsFlyer raw data export
+table_schema = st.radio("**Step1**: Select your preferred schema or data source", ["Firebase exported through BQ", "Other data sources & schemas"], index=None) # AppsFlyer raw data export
 
 if table_schema == "Firebase exported through BQ":
-    with st.expander("Generate a BQ query for easy upload and analysis", expanded=True):
+    st.markdown("""
+        In case you haven’t, you can [export your project data from Firebase into BigQuery](https://firebase.google.com/docs/projects/bigquery-export). 
+        With BigQuery, you can then analyze your data with BigQuery SQL or export the data to use with this tool. 
+        This is [true also for GA4](https://support.google.com/analytics/answer/7029846#tables&zippy=). Once you have your data available in BQ, you can proceed to use this tool to tag your event names, and copy the output query so you can later upload the csv output of the query for analysis. 
+    """ , unsafe_allow_html=True)
+    with st.expander("Generate a BQ query you can easily upload for analysis", expanded=True):
         table_name = st.text_input(
-            label="Source table (e.g. `project_name.dataset_name.table_name`)",
+            label="Define the name of your BQ source table (e.g. `project_name.dataset_name.table_name`)",
             value='',
             # help="Enter the ID of the source table that contains the data you would like to analyze."
         )
@@ -94,7 +100,7 @@ if table_schema == "Firebase exported through BQ":
         sampling_on = st.toggle("Adjust sample size", False)
         if sampling_on:
             percentage = st.slider(
-                label="Choose your sample size (% of population)?",
+                label="If you believe your output will be too large, you can use this to create a subsample of your entire user base.",
                 min_value=0,
                 max_value=100,
                 value=100,
@@ -106,7 +112,7 @@ if table_schema == "Firebase exported through BQ":
         column_names_on = st.toggle("Edit column names", False)
         if column_names_on:
             # Column Names Section
-            st.markdown("If needed, you can change the column names for the BigQuery code below.")
+            st.markdown("If you're not using the standard BQ column names, update the column names for the BigQuery code below according to your own schema.")
 
             # Column Name Inputs
             user_id = st.text_input(
@@ -141,10 +147,10 @@ if table_schema == "Firebase exported through BQ":
             event = 'event_name'
             value = 'event_value_in_usd'
 
-        anchor_on = st.toggle("Include custom anchoring events", False)
+        anchor_on = st.toggle("Include custom anchoring event", False)
         if anchor_on:
             anchoring_event = st.text_input(
-            label="Event names (comma-separated and enclosed in single quotes e.g. `'trial_start'`)",
+            label="An event that best represent what you consider as potential first interaction of the user with your business. This could be a session, an install, or a purchase event - whichever best represents a first interaction. (comma-separated and enclosed in single quotes e.g. `'trial_start'`)",
             value=''
             )
             anchoring_event = f"({event} IN ({anchoring_event}) OR ({value} != 0 OR {value} IS NOT NULL))"
@@ -192,32 +198,37 @@ if table_schema == "Firebase exported through BQ":
 
 elif table_schema == "Other data sources & schemas":
     with st.expander("Data Requirements and Guidelines", expanded=True):
+    
         st.markdown("""
-            To ensure the analysis runs smoothly with your own dataset, please make sure your data meets the following criteria:
-
+            You can choose to upload your own data .csv output carrying user event logs in a pre-defined time range where each row represents a unique event, 
+            including a user identification, an interaction timestamp, a first touchpoint timestamp, an event name, and a revenue value.
+                                
+            First interaction of the user could be a first session, an install, or a purchase event - whichever best represents a first interaction.
+            It's important to include only users in the table that have their first interaction within this pre-defined time range.
+            
             **1. Data Format**
             - CSV format (separated by commas)
             - historical data of user events a year back from yesterday *(Note: Remember the first touchpoint of the user has to be within this period)*
             
             **2. Data Structure**
             - Columns
-                - `user_id`: *string*
-                - `timestamp`: *datetime*
-                - `first_touchpoint`: *datetime*
-                - `event`: *string*
-                - `value`: *float*
+                - `user_id`: *string* - reflects a consistent user ID across your entire csv file.
+                - `timestamp`: *datetime* - a reliable timestamp for each event included in your csv file.
+                - `first_touchpoint`: *datetime* - the timestamp of the first interaction of the user with your brand or business.
+                - `event`: *string* - the name of the reported event.
+                - `value`: *float* - the revenue amount produced as part of the event. Even though this is just he value, make sure it is consistent from a currency perspective between all events.
             - Rows
                 - Each row represents a unique event
         """)
         st.markdown("")
 
 if table_schema:
-    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+    uploaded_file = st.file_uploader("**Step 2**: Upload your CSV data file", type="csv")
 
     if uploaded_file is not None:
         df = load_data(uploaded_file)
         column_names_check(df)
-        on = st.toggle("Define custom anchoring event", False)
+        on = st.toggle("**Optional**: Select your custom anchor event from your dataset", False)
         if on:
             option = st.selectbox("Pick one event", df['event'].unique())
         else:
