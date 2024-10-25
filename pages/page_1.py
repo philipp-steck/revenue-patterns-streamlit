@@ -71,8 +71,8 @@ st.set_page_config(
     initial_sidebar_state="expanded" 
 )
 
-# st.title("How relevant is pLTV for you?")
-st.markdown("#### Let's get started with the analysis!")
+
+st.markdown("#### How relevant is pLTV for you?")
 st.markdown("""
         This tool analyzes whether your business could potentially benefit from pLTV modeling. 
         It demonstrates how user revenue patterns evolve over time and shows how effectively optimizing for this can have a significant impact on your average user revenue. 
