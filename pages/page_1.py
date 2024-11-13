@@ -46,11 +46,13 @@ def preprocess_data(df, option):
         df['hours_since_first_touchpoint'] = (df['timestamp'] - df['new_anchor_timestamp']).dt.total_seconds() / 3600
     else:
         df['hours_since_first_touchpoint'] = (df['timestamp'] - df['first_touchpoint']).dt.total_seconds() / 3600
+
+
+    current_timestamp = pd.Timestamp.now()
+    df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
     
     df['value'] = df['value'].fillna(0)
 
-    # current_timestamp = pd.Timestamp.now().tz_localize('UTC')
-    # df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
 
     return df
 
