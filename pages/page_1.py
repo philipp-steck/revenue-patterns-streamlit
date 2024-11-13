@@ -49,8 +49,8 @@ def preprocess_data(df, option):
     
     df['value'] = df['value'].fillna(0)
 
-    current_timestamp = pd.Timestamp.now().tz_localize('UTC')
-    df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
+    # current_timestamp = pd.Timestamp.now().tz_localize('UTC')
+    # df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
 
     return df
 
