@@ -5,7 +5,6 @@ from datetime import datetime
 import time
 import matplotlib.pyplot as plt
 import seaborn as sns
-from fuzzywuzzy import process
 import re
 
 @st.cache_data
@@ -71,56 +70,6 @@ def prepare_plots(df):
         df_aggregate_payments = df_aggregate_payments.merge(tmp_df, how='left', on='user_id')
 
     return df_aggregate_payments, days_list
-
-def normalise_column_names(df):
-    for col in df.columns:
-        column = re.sub(r'([a-z])([A-Z])', r'\1 \2', col)
-        column = re.sub(r'[-_\s]+', ' ', column)
-        column = column.strip().lower()
-        df.rename(columns={col: column}, inplace=True)
-    return df
-
-def map_columns(df_columns, standard_columns):
-    mapped_columns = {col: col for col in df_columns}
-    assigned_standard_columns = set()
-    assigned_df_columns = set()
-    matches = []
-
-    for col in df_columns:
-        results = process.extract(col, standard_columns, limit=None)
-        for match, score in results:
-            matches.append((col, match, score))
-   
-    sorted_matches = sorted(matches, key=lambda x: x[2], reverse=True)
-    
-    for col, match, score in sorted_matches:
-        if score > 80 and match not in assigned_standard_columns and col not in assigned_df_columns:
-            mapped_columns[col] = match
-            assigned_standard_columns.add(match)
-            assigned_df_columns.add(col)
-
-    return mapped_columns
-
-def get_user_id(row):
-    if row['platform'] == 'ios':
-        if pd.notnull(row['customer user id']):
-            return row['customer user id']
-        elif pd.notnull(row['idfv']):
-            return row['idfv']
-        elif pd.notnull(row['idfa']):
-            return row['idfa']
-        elif pd.notnull(row['appsflyer id']):
-            return row['appsflyer id']
-    elif row['platform'] == 'android':
-        if pd.notnull(row['customer user id']):
-            return row['customer user id']
-        elif pd.notnull(row['advertising id']):
-            return row['advertising id']
-        elif pd.notnull(row['android id']):
-            return row['android id']
-        elif pd.notnull(row['appsflyer id']):
-            return row['appsflyer id']
-    return None
 
 st.set_page_config(
     initial_sidebar_state="expanded" 
