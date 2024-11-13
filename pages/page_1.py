@@ -5,6 +5,8 @@ from datetime import datetime
 import time
 import matplotlib.pyplot as plt
 import seaborn as sns
+from fuzzywuzzy import process
+import re
 
 @st.cache_data
 def load_data(uploaded_file):
@@ -48,6 +50,9 @@ def preprocess_data(df, option):
     
     df['value'] = df['value'].fillna(0)
 
+    current_timestamp = pd.Timestamp.now().tz_localize('UTC')
+    df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
+
     return df
 
 @st.cache_data
@@ -67,10 +72,59 @@ def prepare_plots(df):
 
     return df_aggregate_payments, days_list
 
+def normalise_column_names(df):
+    for col in df.columns:
+        column = re.sub(r'([a-z])([A-Z])', r'\1 \2', col)
+        column = re.sub(r'[-_\s]+', ' ', column)
+        column = column.strip().lower()
+        df.rename(columns={col: column}, inplace=True)
+    return df
+
+def map_columns(df_columns, standard_columns):
+    mapped_columns = {col: col for col in df_columns}
+    assigned_standard_columns = set()
+    assigned_df_columns = set()
+    matches = []
+
+    for col in df_columns:
+        results = process.extract(col, standard_columns, limit=None)
+        for match, score in results:
+            matches.append((col, match, score))
+   
+    sorted_matches = sorted(matches, key=lambda x: x[2], reverse=True)
+    
+    for col, match, score in sorted_matches:
+        if score > 80 and match not in assigned_standard_columns and col not in assigned_df_columns:
+            mapped_columns[col] = match
+            assigned_standard_columns.add(match)
+            assigned_df_columns.add(col)
+
+    return mapped_columns
+
+def get_user_id(row):
+    if row['platform'] == 'ios':
+        if pd.notnull(row['customer user id']):
+            return row['customer user id']
+        elif pd.notnull(row['idfv']):
+            return row['idfv']
+        elif pd.notnull(row['idfa']):
+            return row['idfa']
+        elif pd.notnull(row['appsflyer id']):
+            return row['appsflyer id']
+    elif row['platform'] == 'android':
+        if pd.notnull(row['customer user id']):
+            return row['customer user id']
+        elif pd.notnull(row['advertising id']):
+            return row['advertising id']
+        elif pd.notnull(row['android id']):
+            return row['android id']
+        elif pd.notnull(row['appsflyer id']):
+            return row['appsflyer id']
+    return None
+
 st.set_page_config(
     initial_sidebar_state="expanded" 
 )
-
 
 st.markdown("#### How relevant is pLTV for you?")
 st.markdown("""
@@ -82,7 +136,7 @@ st.markdown("""
 if 'data' not in st.session_state:
     st.session_state['data'] = None
 
-table_schema = st.radio("**Step1**: Select your preferred schema or data source", ["Firebase exported through BQ", "Other data sources & schemas"], index=None) # AppsFlyer raw data export
+table_schema = st.radio("**Step1**: Select your preferred schema or data source", ["Firebase exported through BQ", "Other data sources & schemas"], index=None) # "AppsFlyer raw data export"
 
 if table_schema == "Firebase exported through BQ":
     st.markdown("""
@@ -196,6 +250,17 @@ if table_schema == "Firebase exported through BQ":
         st.code(path, language='sql')
         st.markdown("")
 
+    uploaded_file = st.file_uploader("**Step 2**: Upload your CSV data file", type="csv")
+
+    if uploaded_file is not None:
+        df = load_data(uploaded_file)
+        column_names_check(df)
+        on = st.toggle("**Optional**: Select your custom anchor event from your dataset", False)
+        if on:
+            option = st.selectbox("Pick one event", df['event'].unique())
+        else:
+            option = 'first_touchpoint'
+
 elif table_schema == "Other data sources & schemas":
     with st.expander("Data Requirements and Guidelines", expanded=True):
     
@@ -222,7 +287,6 @@ elif table_schema == "Other data sources & schemas":
         """)
         st.markdown("")
 
-if table_schema:
     uploaded_file = st.file_uploader("**Step 2**: Upload your CSV data file", type="csv")
 
     if uploaded_file is not None:
@@ -234,9 +298,8 @@ if table_schema:
         else:
             option = 'first_touchpoint'
 
-        if st.button('run analysis'):
+        if st.button('Run analysis'):
             df = preprocess_data(df, option)
-            st.write(df.head())
             
             df_aggregate_payments, days_list = prepare_plots(df)
 
@@ -246,7 +309,7 @@ if table_schema:
             if st.success('Data loaded successfully!'):
                 time.sleep(2)
                 st.switch_page("pages/page_2.py")
-    
+        
 
 
 
