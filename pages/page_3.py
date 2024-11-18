@@ -56,7 +56,7 @@ st.set_page_config(
 st.markdown('## Post-Optimization Conversions')
 st.markdown('''<div style="text-align: justify;">
     This feature represents conversion patterns over time, helping customers identify the volume of valuable users whose conversions occur after the typical 3-day optimization window. 
-    Using cumulative conversion rates, the chart compares key time windows (e.g., 0, 1, 3, 7, 14, 31, 60 days, etc.) 
+    Using cumulative conversion rates, the chart compares key time windows (e.g. 1, 3, 7, 14, 31, 62, 93, 186) 
     and highlights delayed conversions often missed in standard ad network optimizations. 
     By visualizing the increase in conversions beyond the 3-day mark, this tool helps businesses uncover missed opportunities to better optimize for long-term customer value.
     </div>''', unsafe_allow_html=True)
@@ -73,5 +73,7 @@ st.divider()
 metric = st.radio("", ('Conversions', 'Revenue'))      
 plot_2(df_aggregate_payments, days_list)
 st.write('')
-if st.button("Next Page"):
+if st.button("Next insight"):
     st.switch_page("pages/page_4.py")
+elif st.button("Previous insight"):
+    st.switch_page("pages/page_2.py")

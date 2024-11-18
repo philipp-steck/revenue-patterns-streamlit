@@ -10,7 +10,7 @@ def plot_1(df_aggregate_payments):
     correlation_matrix = df_aggregate_payments.loc[:, ~df_aggregate_payments.columns.isin(['user_id'])].corr(method='spearman')
     reversed_corr_matrix = correlation_matrix.iloc[::-1]
 
-    you_vs_industry = correlation_matrix.loc['D3', 'D31']
+    you_vs_industry = correlation_matrix.loc['D3', 'D62']
     st.divider()
     st.write('')
 
@@ -28,14 +28,14 @@ def plot_1(df_aggregate_payments):
     with col2:
         st.metric(label="TL;DR", value=round(you_vs_industry,3))
         st.markdown('''<div style="text-align: left;">
-             Correlation score between day 3 and day 31.      
+             Correlation score between day 3 and day 62.      
         </div>''', unsafe_allow_html=True)
 
     st.write()
     container = st.container(border=False)
     container.markdown(f'''<div style="text-align: justify;">
     For example, looking at the image above, one can predict {round(you_vs_industry,3)*100}% of the valuable customers 
-    and their relative importance by day 31 by knowing the valuable customers on day 3. 
+    and their relative importance by day 62 by knowing the valuable customers on day 3. 
     This helps assess whether optimizing for or targeting the early valuable customers aligns well with the true long-term business objectives related to customer value.
     </div>''', unsafe_allow_html=True)
     container.write('')
@@ -61,5 +61,5 @@ else:
 
 plot_1(df_aggregate_payments)
 st.write('')
-if st.button("Next Page"):
+if st.button("Next insight"):
     st.switch_page("pages/page_3.py")

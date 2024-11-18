@@ -12,14 +12,14 @@ def plot_3(df_aggregate_payments, days_list):
 
     colA, colB = st.columns(2)
     with colA:
-        reference = st.selectbox("Select a **reference day**", days_list, index=3)
+        reference = st.selectbox("Select a **reference day**", days_list, index=1)
     
     lookahead_list = [day for day in days_list if day >= reference]
     with colB:
         lookahead = st.selectbox(
             "Select a **lookahead day**",
             lookahead_list,
-            index=lookahead_list.index(lookahead_list[-1])
+            index=lookahead_list.index(lookahead_list[-3])
         )
 
     bins = np.linspace(0, 1, 11)  # 10 bins from 0% to 100%
@@ -59,7 +59,7 @@ def plot_3(df_aggregate_payments, days_list):
     st.write()
     container = st.container(border=False)
     container.markdown(f'''<div style="text-align: justify;">
-    For example, customers who generated the most value by day seven may be lower-value customers by day 60—their ranking or relative importance compared to others may have changed. 
+    For example, customers who generated the most value by day seven may be lower-value customers by day 62—their ranking or relative importance compared to others may have changed. 
     This output quantifies the degree to which the relative ordering of valuable customers based on their early value differs from their later relative ordering after more time has passed. 
     It shows if the most important valuable customers early on remain the most important over a longer period.
     </div>''', unsafe_allow_html=True)
@@ -72,8 +72,8 @@ st.set_page_config(
 st.markdown('## User Value Re-Ranking')
 st.markdown('''<div style="text-align: justify;">
     The third output analyzes how the ranking or relative importance of valuable customers changes over time. 
-    It looks at the customers who were identified as valuable early on, like up to day 7. 
-    Then, it examines whether the ordering of those same customers based on how valuable they are has shifted by a later date, like day 60.
+    It looks at the customers who were identified as valuable early on, like up to day 3. 
+    Then, it examines whether the ordering of those same customers based on how valuable they are has shifted by a later date, like day 62.
     </div>''', unsafe_allow_html=True)
 
 if 'df_aggregate_payments' not in st.session_state:
@@ -86,5 +86,7 @@ else:
 
 plot_3(df_aggregate_payments, days_list)
 st.write('')
+if st.button("Previous insight"):
+    st.switch_page("pages/page_3.py")
 
 
