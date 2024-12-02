@@ -41,7 +41,7 @@ def plot_1(df_aggregate_payments):
     container.write('')
 
 st.set_page_config(
-    initial_sidebar_state="collapsed" 
+    initial_sidebar_state="expanded"
 )
 
 st.markdown('## Short to long-term overall revenue correlation')

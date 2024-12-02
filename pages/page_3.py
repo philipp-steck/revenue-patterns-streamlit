@@ -50,7 +50,7 @@ def plot_2(df_aggregate_payments, days_list):
     return df_plot2
 
 st.set_page_config(
-    initial_sidebar_state="collapsed" 
+    initial_sidebar_state="expanded" 
 )
 
 st.markdown('## Post-Optimization Conversions')

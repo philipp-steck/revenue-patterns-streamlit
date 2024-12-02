@@ -66,7 +66,7 @@ def plot_3(df_aggregate_payments, days_list):
     container.write('')
 
 st.set_page_config(
-    initial_sidebar_state="collapsed" 
+    initial_sidebar_state="expanded" 
 )
 
 st.markdown('## User Value Re-Ranking')
