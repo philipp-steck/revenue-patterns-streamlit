@@ -24,7 +24,7 @@ def setup_navigation(pages):
     pg = st.navigation(
         {
             "Main": [pages[0]],
-            "Plots": pages[1:],
+            "Analysis": pages[1:],
         }
     )
     return pg
