@@ -49,7 +49,7 @@ def preprocess_data(df, option):
             .groupby('user_id')['timestamp']
             .min()
             .reset_index()
-            .rename(columns={'timestamp': 'first_touchpoint'})
+            .rename(columns={'timestamp': 'first_touchpoint'}).copy()
         )
 
         df = df.merge(first_touchpoint, on='user_id', how='left')
