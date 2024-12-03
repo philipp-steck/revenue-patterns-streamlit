@@ -42,13 +42,22 @@ def preprocess_data(df, option):
         df['first_touchpoint'] = pd.to_datetime(df['first_touchpoint'])
         df['hours_since_first_touchpoint'] = (df['timestamp'] - df['first_touchpoint']).dt.total_seconds() / 3600
     else:
-        df['first_touchpoint'] = df.loc[df['is_activation'] == True].groupby('user_id')['timestamp'].transform('min')
+        df['is_activation'] = df['is_activation'].astype(bool)
 
-    # Create a new column for the hours since the first touchpoint
-    df['hours_since_first_touchpoint'] = (df['timestamp'] - df['first_touchpoint']).dt.total_seconds() / 3600
+        first_touchpoint = (
+            df.loc[df.is_activation]
+            .groupby('user_id')['timestamp']
+            .min()
+            .reset_index()
+            .rename(columns={'timestamp': 'first_touchpoint'})
+        )
+
+        df = df.merge(first_touchpoint, on='user_id', how='left')
+        df['hours_since_first_touchpoint'] = (df['timestamp'] - df['first_touchpoint']).dt.total_seconds() / 3600
 
     current_timestamp = pd.Timestamp.now()
     df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
+    # df = df[df['first_touchpoint'] <= current_timestamp - pd.Timedelta(hours=(24*62))]
     
     df['value'] = df['value'].fillna(0)
 
@@ -60,6 +69,7 @@ def prepare_plots(df):
     """Prepare plots for the analysis."""
     
     days_list = [1, 3, 7, 14, 31, 62, 93 , 186]
+    # days_list = [1, 3, 7, 14, 31, 62]
 
     # Create new dataframe with aggregated payment values
     df_aggregate_payments = pd.DataFrame(df['user_id'].unique(), columns=['user_id'])
