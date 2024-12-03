@@ -55,7 +55,12 @@ def preprocess_data(df, option):
         df = df.merge(first_touchpoint, on='user_id', how='left')
         df['hours_since_first_touchpoint'] = (df['timestamp'] - df['first_touchpoint']).dt.total_seconds() / 3600
 
-    current_timestamp = pd.Timestamp.now()
+    timestamp_now = pd.Timestamp.now()
+    if df['timestamp'].iloc[0].tzinfo is not None:  
+        current_timestamp = timestamp_now.tz_localize(df['timestamp'].iloc[0].tzinfo)
+    else:
+        current_timestamp = timestamp_now
+        
     df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
     # df = df[df['first_touchpoint'] <= current_timestamp - pd.Timedelta(hours=(24*62))]
     
