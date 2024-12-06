@@ -60,20 +60,31 @@ def preprocess_data(df, option):
         current_timestamp = timestamp_now.tz_localize(df['timestamp'].iloc[0].tzinfo)
     else:
         current_timestamp = timestamp_now
+
+    if df['timestamp'].min() > current_timestamp - pd.Timedelta(hours=(24*90)):
+        st.warning("The data does not contain enough historical data to perform the analysis. Please upload a dataset with at least 90 days of historical data.")
+        st.stop()
+    elif df['first_touchpoint'].min() > current_timestamp - pd.Timedelta(hours=(24*120)):
+        df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*90))]
+        days_list = [1, 3, 7, 14, 21, 31, 62]
+    elif df['first_touchpoint'].min() > current_timestamp - pd.Timedelta(hours=(24*180)):
+        df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*120))]
+        days_list = [1, 3, 7, 14, 31, 62, 93]
+    else:
+        df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
+        days_list = [1, 3, 7, 14, 31, 62, 93, 186]
         
-    df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
-    # df = df[df['first_touchpoint'] <= current_timestamp - pd.Timedelta(hours=(24*62))]
+    # df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
+
     
     df['value'] = df['value'].fillna(0)
-
-
-    return df
+    return df, days_list
 
 @st.cache_data
-def prepare_plots(df):
+def prepare_plots(df, days_list):
     """Prepare plots for the analysis."""
     
-    days_list = [1, 3, 7, 14, 31, 62, 93 , 186]
+    # days_list = [1, 3, 7, 14, 31, 62, 93 , 186]
     # days_list = [1, 3, 7, 14, 31, 62]
 
     # Create new dataframe with aggregated payment values
@@ -411,9 +422,9 @@ if uploaded_file is not None:
     option = 'first_touchpoint'
 
     if test:
-        df = preprocess_data(df, option)
+        df, days_list = preprocess_data(df, option)
         
-        df_aggregate_payments, days_list = prepare_plots(df)
+        df_aggregate_payments, days_list = prepare_plots(df, days_list)
 
         st.session_state['df_aggregate_payments'] = df_aggregate_payments
         st.session_state['days_list'] = days_list
