@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import re
 
+@st.cache_data
 def load_data(uploaded_file):
     """Load data from a CSV file into a pandas DataFrame."""
     try:
@@ -16,27 +17,17 @@ def load_data(uploaded_file):
         st.error(f"Error loading data: {e}")
         return None
 
-def column_names_check(df):
-    """Check if the data meets the requirements."""
-    required_columns = ['user_id', 'timestamp', 'is_activation', 'value']
-    df_columns = df.columns.tolist()
-    missing_columns = list(set(required_columns) - set(df_columns))
-
-    # Initialize session state variables
-    if 'success' not in st.session_state:
-        st.session_state.success = False
-
-    if set(required_columns).issubset(set(df_columns)):
-        return True
-    else:
-       st.warning("The following required columns are missing: " + ", ".join(missing_columns) + ". Please check the requirements and upload the data again.")
-       st.stop()
-
-
 @st.cache_data
 def preprocess_data(df, option):
     """Preprocess the data for analysis."""
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
+
+    # Lowercase column names
+    df.columns = df.columns.str.lower()
+
+    if df['timestamp'].dtype == 'object':
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+    else:
+        pass
 
     if 'is_activation' not in df.columns:
         df['first_touchpoint'] = pd.to_datetime(df['first_touchpoint'])
@@ -108,15 +99,10 @@ st.markdown("""
         It demonstrates how user revenue patterns evolve over time and shows how effectively optimizing for this can have a significant impact on your average user revenue. 
         """)
 
-#st.info("""The tool requires a CSV file with user event logs. 
- #       Each row should represent a unique event with the following columns: 
-  #     *user_id*, *timestamp*, *is_activation*, and *value*.
-   #     """, icon="ℹ")
-#st.write('')
 
 st.markdown("""
-            The tool requires a CSV file with user event logs. Each row should represent a unique event with the following columns: 
-            *user_id*, *timestamp*, *is_activation*, and *value*.
+            *The tool requires a CSV file with user event logs. Each row should represent a unique event with the following columns: 
+            **user_id**, **timestamp**, **is_activation**, and **value**.*
             """)
 st.write('')
 
@@ -409,7 +395,7 @@ with col2:
     """, unsafe_allow_html=True)
 
     # Create the button
-    test = st.button(
+    analysis_button = st.button(
         r"$\textsf{\Large Run Analysis}$",
         type="primary",
         use_container_width=True
@@ -421,7 +407,7 @@ if uploaded_file is not None:
     # column_names_check(df)
     option = 'first_touchpoint'
 
-    if test:
+    if analysis_button:
         df, days_list = preprocess_data(df, option)
         
         df_aggregate_payments, days_list = prepare_plots(df, days_list)
@@ -433,7 +419,7 @@ if uploaded_file is not None:
             time.sleep(2)
             st.switch_page("pages/page_2.py")
 else:
-    if test:
+    if analysis_button:
         st.info("Please upload a CSV file to proceed.")
 
 

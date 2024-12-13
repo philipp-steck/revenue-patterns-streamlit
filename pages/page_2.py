@@ -61,5 +61,9 @@ else:
 
 plot_1(df_aggregate_payments)
 st.write('')
-if st.button("Next insight"):
+col1, col2, col3 = st.columns([5, 1, 1])
+
+with col3:
+    next = st.button("Next")
+if next:
     st.switch_page("pages/page_3.py")

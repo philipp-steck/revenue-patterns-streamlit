@@ -86,7 +86,11 @@ else:
 
 plot_3(df_aggregate_payments, days_list)
 st.write('')
-if st.button("Previous insight"):
-    st.switch_page("pages/page_3.py")
 
+col1, col2, col3 = st.columns([5, 1, 1])
+
+with col3:
+    next = st.button("Previous")
+if next:
+    st.switch_page("pages/page_3.py")
 

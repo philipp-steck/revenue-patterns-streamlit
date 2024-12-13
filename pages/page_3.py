@@ -73,7 +73,13 @@ st.divider()
 metric = st.radio("", ('Conversions', 'Revenue'))      
 plot_2(df_aggregate_payments, days_list)
 st.write('')
-if st.button("Next insight"):
+
+col1, col2, col3 = st.columns([5.3, 1, 1])
+with col2:
+    previous = st.button("Previous")
+with col3:
+    next = st.button("Next")
+if next:
     st.switch_page("pages/page_4.py")
-elif st.button("Previous insight"):
+elif previous:
     st.switch_page("pages/page_2.py")
