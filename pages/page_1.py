@@ -57,13 +57,13 @@ def preprocess_data(df, option):
         st.stop()
     elif df['first_touchpoint'].min() > current_timestamp - pd.Timedelta(hours=(24*120)):
         df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*90))]
-        days_list = [1, 3, 7, 14, 21, 31, 62]
+        days_list = [1, 3, 7, 14, 21, 30, 60]
     elif df['first_touchpoint'].min() > current_timestamp - pd.Timedelta(hours=(24*180)):
         df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*120))]
-        days_list = [1, 3, 7, 14, 31, 62, 93]
+        days_list = [1, 3, 7, 14, 30, 60, 90]
     else:
         df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
-        days_list = [1, 3, 7, 14, 31, 62, 93, 186]
+        days_list = [1, 3, 7, 14, 30, 60, 90, 186]
         
     # df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
 
@@ -75,8 +75,8 @@ def preprocess_data(df, option):
 def prepare_plots(df, days_list):
     """Prepare plots for the analysis."""
     
-    # days_list = [1, 3, 7, 14, 31, 62, 93 , 186]
-    # days_list = [1, 3, 7, 14, 31, 62]
+    # days_list = [1, 3, 7, 14, 30, 60, 90, 180]
+    # days_list = [1, 3, 7, 14, 30, 60]
 
     # Create new dataframe with aggregated payment values
     df_aggregate_payments = pd.DataFrame(df['user_id'].unique(), columns=['user_id'])
@@ -105,6 +105,41 @@ st.markdown("""
             **user_id**, **timestamp**, **is_activation**, and **value**.*
             """)
 st.write('')
+st.markdown("#### What is your average yearly ad spend?")
+
+col1, col2, col3 = st.columns([2, 1, 3])
+
+with col1:
+    avg_yearly_spend = st.number_input(
+        label="Enter your average yearly ad spend in USD",
+        value=None,
+        placeholder="Type a number...",
+        label_visibility="collapsed",
+    )
+st.write('')
+
+st.markdown("#### What is your average ROAS %?")
+col1, col2, col3 = st.columns([1, 2, 3])
+
+with col1:
+    roas_period = st.selectbox(
+        label="Select your ROAS period",
+        options=["D30", "D60", "D90", "D180"],
+        index=None,
+        placeholder="D90",
+        label_visibility="collapsed",
+    )
+
+with col2:
+    regular_roas = st.number_input(
+        label="Enter your average ROAS %",
+        value=None,
+        placeholder="Type a number...",
+        label_visibility="collapsed",
+    )
+st.write('')
+
+
 
 st.markdown("#### Choose your system for dataset extraction")
 options = ["Firebase", "AppsFlyer", "Shopify", "Other"]
@@ -389,6 +424,8 @@ with col2:
             div.stButton > button {
                 padding-top: 25px !important;
                 padding-bottom: 25px !important;
+                background-color: #50CC6D;
+                border-color: #50CC6D;
                 font-size: 20px !important; /* Optional: Adjust font size */
             }
         </style>
@@ -414,6 +451,10 @@ if uploaded_file is not None:
 
         st.session_state['df_aggregate_payments'] = df_aggregate_payments
         st.session_state['days_list'] = days_list
+        st.session_state['avg_yearly_spend'] = avg_yearly_spend
+        st.session_state['roas_period'] = roas_period
+        st.session_state['regular_roas'] = regular_roas
+        
         
         if st.success('Data loaded successfully!'):
             time.sleep(2)

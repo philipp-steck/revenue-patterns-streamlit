@@ -9,20 +9,25 @@ def page_config():
     )
     page_2 = st.Page(
         page="pages/page_2.py",
-        title="Revenue Correlation",
+        title="Estimated Monetary Lift",
         #icon=":material/analytics:"
     )
     page_3 = st.Page(
         page="pages/page_3.py",
-        title="Post-Optimization Conversions",
-        #icon=":material/timeline:"
+        title="Revenue Correlation",
+        #icon=":material/analytics:"
     )
     page_4 = st.Page(
         page="pages/page_4.py",
+        title="Post-Optimization Conversions",
+        #icon=":material/timeline:"
+    )
+    page_5 = st.Page(
+        page="pages/page_5.py",
         title="User Value Re-Ranking",
         #icon=":material/analytics:"
     )
-    return [page_1, page_2, page_3, page_4]
+    return [page_1, page_2, page_3, page_4, page_5]
 
 def setup_navigation(pages):
     pg = st.navigation(
