@@ -1,80 +1,95 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
+from datetime import datetime
+
 import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
+import pandas as pd
 import plotly.express as px
+import seaborn as sns
+import streamlit as st
 
 
-def plot_2(df_aggregate_payments, days_list):
-    """Generate and display a line plot with percentage of users who made a purchase over time"""
-    def calculate_percentage_payments(dataframe, column_name):
-        if metric == 'Conversions':
-            conversions = (dataframe[column_name] > 0).astype(int)
-            percentage = conversions.mean() * 100
-        else:
-            percentage = dataframe[column_name].mean()
-        
-        return percentage
-    
-    percentage_payment = []
+def plot_3(df_aggregate_payments, days_list):
+    """Generate and display a heatmap plot for the percentile rank of users who made a purchase at day `reference` and `lookahead`"""
+    st.divider()
 
-    df_aggregate_payments2 = df_aggregate_payments.copy()
-    df_aggregate_payments2['all_zero'] = df_aggregate_payments2.drop(columns='user_id').eq(0).all(axis=1)
-    df_aggregate_payments2 = df_aggregate_payments2[df_aggregate_payments2['all_zero']==False].copy()
+    colA, colB = st.columns(2)
+    with colA:
+        reference = st.selectbox("Select a **reference day**", days_list, index=1)
 
-    for i, day in enumerate(days_list):
-        percentage = calculate_percentage_payments(df_aggregate_payments2, f'D{day}')
-        percentage_payment.append(percentage)
+    lookahead_list = [day for day in days_list if day >= reference]
+    with colB:
+        lookahead = st.selectbox(
+            "Select a **lookahead day**", lookahead_list, index=lookahead_list.index(lookahead_list[-3])
+        )
 
-    df_plot2 = pd.DataFrame(list(zip(days_list, percentage_payment)),
-                            columns=['days', 'percentage'])
-    
-    if metric == 'Conversions':
-        y_label = 'Share of total conversions (%)'
-    else:
-        y_label = 'Average revenue per user'
+    bins = np.linspace(0, 1, 11)  # 10 bins from 0% to 100%
+    labels = [f"{int(bins[i]*100)}-{int(bins[i+1]*100)}" for i in range(len(bins) - 1)]
+
+    df_aggregate_payments = df_aggregate_payments.sample(frac=1, random_state=42).reset_index(drop=True)
+    temp_reference = df_aggregate_payments[df_aggregate_payments[f"D{reference}"] > 0].copy()
+    temp_list = [num for num in days_list if num >= reference]
+    df_reference = temp_reference[["user_id"]].copy()
+
+    for day in temp_list:
+        df_reference[f"D{day}"] = (
+            temp_reference[f"D{day}"].rank(method="first", ascending=False).rank(pct=True, ascending=False)
+        )
+        df_reference[f"D{day}"] = pd.cut(df_reference[f"D{day}"], bins=bins, labels=labels, include_lowest=True)
+
+    heatmap_data = pd.crosstab(df_reference[f"D{reference}"], df_reference[f"D{lookahead}"], normalize="index")
+
+    heatmap_data = heatmap_data.loc[labels[::-1], labels]
+    heatmap_data = heatmap_data * 10
+
+    # Plot the heatmap
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.heatmap(
+        heatmap_data, annot=True, cmap="Purples", cbar_kws={"shrink": 0.75, "label": "Movement between percentiles (%)"}
+    )
+
+    plt.xlabel(f"Lookahead: Percentile rank of the same users after D{lookahead}")
+    plt.ylabel(f"Reference: Initial percentile Rank of users on D{reference}")
+    plt.yticks(rotation=0)
+    st.pyplot(fig)
+
+    st.write()
+    container = st.container(border=False)
+    container.markdown(
+        f"""<div style="text-align: justify;">
+    For example, customers who generated the most value by day seven may be lower-value customers by day 60—their ranking or relative importance compared to others may have changed. 
+    This output quantifies the degree to which the relative ordering of valuable customers based on their early value differs from their later relative ordering after more time has passed. 
+    It shows if the most important valuable customers early on remain the most important over a longer period.
+    </div>""",
+        unsafe_allow_html=True,
+    )
+    container.write("")
 
 
-    fig = px.line(df_plot2, x='days', y='percentage', markers=True,
-            template="simple_white",  title=None, labels={'percentage':y_label}
-            )
-  
+st.set_page_config(initial_sidebar_state="expanded")
 
-    fig.update_xaxes(range=[0, df_plot2['days'].max()], showspikes=True, spikedash="dot", spikethickness=2, spikemode="toaxis")#spikesnap="data")
-    fig.update_yaxes(showspikes=True, spikedash="dot", spikethickness=2, spikemode="toaxis", )#spikesnap="data")
-
-    st.plotly_chart(fig, use_container_width=True, config = {'displayModeBar': False})
-
-
-    return df_plot2
-
-st.set_page_config(
-    initial_sidebar_state="expanded" 
+st.markdown("## User Value Re-Ranking")
+st.markdown(
+    """<div style="text-align: justify;">
+    The third output analyzes how the ranking or relative importance of valuable customers changes over time. 
+    It looks at the customers who were identified as valuable early on, like up to day 3. 
+    Then, it examines whether the ordering of those same customers based on how valuable they are has shifted by a later date, like day 60.
+    </div>""",
+    unsafe_allow_html=True,
 )
 
-st.markdown('## Post-Optimization Conversions')
-st.markdown('''<div style="text-align: justify;">
-    This feature represents conversion patterns over time, helping customers identify the volume of valuable users whose conversions occur after the typical 3-day optimization window. 
-    Using cumulative conversion rates, the chart compares key time windows (e.g. 1, 3, 7, 14, 30, 60, 90, 180) 
-    and highlights delayed conversions often missed in standard ad network optimizations. 
-    By visualizing the increase in conversions beyond the 3-day mark, this tool helps businesses uncover missed opportunities to better optimize for long-term customer value.
-    </div>''', unsafe_allow_html=True)
-
-if 'df_aggregate_payments' not in st.session_state:
-    st.write('')
+if "df_aggregate_payments" not in st.session_state:
+    st.write("")
     st.warning("To get up and running, please upload your data on the main page.")
     st.stop()
 else:
-    df_aggregate_payments = st.session_state['df_aggregate_payments']
-    days_list = st.session_state['days_list']
+    df_aggregate_payments = st.session_state["df_aggregate_payments"]
+    days_list = st.session_state["days_list"]
 
-st.divider()
-metric = st.radio("", ('Conversions', 'Revenue'))      
-plot_2(df_aggregate_payments, days_list)
-st.write('')
+plot_3(df_aggregate_payments, days_list)
+st.write("")
 
 col1, col2, col3 = st.columns([5.3, 1, 1])
+
 with col2:
     previous = st.button("Previous")
 with col3:

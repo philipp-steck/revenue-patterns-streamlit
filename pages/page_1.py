@@ -1,11 +1,13 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-from datetime import datetime
-import time
-import matplotlib.pyplot as plt
-import seaborn as sns
 import re
+import time
+from datetime import datetime
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import streamlit as st
+
 
 @st.cache_data
 def load_data(uploaded_file):
@@ -17,6 +19,7 @@ def load_data(uploaded_file):
         st.error(f"Error loading data: {e}")
         return None
 
+
 @st.cache_data
 def preprocess_data(df, option):
     """Preprocess the data for analysis."""
@@ -24,180 +27,159 @@ def preprocess_data(df, option):
     # Lowercase column names
     df.columns = df.columns.str.lower()
 
-    if df['timestamp'].dtype == 'object':
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
+    if df["timestamp"].dtype == "object":
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
     else:
         pass
 
-    if 'is_activation' not in df.columns:
-        df['first_touchpoint'] = pd.to_datetime(df['first_touchpoint'])
-        df['hours_since_first_touchpoint'] = (df['timestamp'] - df['first_touchpoint']).dt.total_seconds() / 3600
+    if "is_activation" not in df.columns:
+        df["first_touchpoint"] = pd.to_datetime(df["first_touchpoint"])
+        df["hours_since_first_touchpoint"] = (df["timestamp"] - df["first_touchpoint"]).dt.total_seconds() / 3600
     else:
-        df['is_activation'] = df['is_activation'].astype(bool)
+        df["is_activation"] = df["is_activation"].astype(bool)
 
         first_touchpoint = (
             df.loc[df.is_activation]
-            .groupby('user_id')['timestamp']
+            .groupby("user_id")["timestamp"]
             .min()
             .reset_index()
-            .rename(columns={'timestamp': 'first_touchpoint'}).copy()
+            .rename(columns={"timestamp": "first_touchpoint"})
+            .copy()
         )
 
-        df = df.merge(first_touchpoint, on='user_id', how='left')
-        df['hours_since_first_touchpoint'] = (df['timestamp'] - df['first_touchpoint']).dt.total_seconds() / 3600
+        df = df.merge(first_touchpoint, on="user_id", how="left")
+        df["hours_since_first_touchpoint"] = (df["timestamp"] - df["first_touchpoint"]).dt.total_seconds() / 3600
 
     timestamp_now = pd.Timestamp.now()
-    if df['timestamp'].iloc[0].tzinfo is not None:  
-        current_timestamp = timestamp_now.tz_localize(df['timestamp'].iloc[0].tzinfo)
+    if df["timestamp"].iloc[0].tzinfo is not None:
+        current_timestamp = timestamp_now.tz_localize(df["timestamp"].iloc[0].tzinfo)
     else:
         current_timestamp = timestamp_now
 
-    if df['timestamp'].min() > current_timestamp - pd.Timedelta(hours=(24*90)):
-        st.warning("The data does not contain enough historical data to perform the analysis. Please upload a dataset with at least 90 days of historical data.")
+    if df["timestamp"].min() > current_timestamp - pd.Timedelta(hours=(24 * 90)):
+        st.warning(
+            "The data does not contain enough historical data to perform the analysis. Please upload a dataset with at least 90 days of historical data."
+        )
         st.stop()
-    elif df['first_touchpoint'].min() > current_timestamp - pd.Timedelta(hours=(24*120)):
-        df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*90))]
+    elif df["first_touchpoint"].min() > current_timestamp - pd.Timedelta(hours=(24 * 120)):
+        df = df[df["first_touchpoint"] < current_timestamp - pd.Timedelta(hours=(24 * 90))]
         days_list = [1, 3, 7, 14, 21, 30, 60]
-    elif df['first_touchpoint'].min() > current_timestamp - pd.Timedelta(hours=(24*180)):
-        df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*120))]
+    elif df["first_touchpoint"].min() > current_timestamp - pd.Timedelta(hours=(24 * 180)):
+        df = df[df["first_touchpoint"] < current_timestamp - pd.Timedelta(hours=(24 * 120))]
         days_list = [1, 3, 7, 14, 30, 60, 90]
     else:
-        df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
-        days_list = [1, 3, 7, 14, 30, 60, 90, 186]
-        
+        df = df[df["first_touchpoint"] < current_timestamp - pd.Timedelta(hours=(24 * 180))]
+        days_list = [1, 3, 7, 14, 30, 60, 90, 180]
+
     # df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
 
-    
-    df['value'] = df['value'].fillna(0)
+    df["value"] = df["value"].fillna(0)
     return df, days_list
+
 
 @st.cache_data
 def prepare_plots(df, days_list):
     """Prepare plots for the analysis."""
-    
+
     # days_list = [1, 3, 7, 14, 30, 60, 90, 180]
     # days_list = [1, 3, 7, 14, 30, 60]
 
     # Create new dataframe with aggregated payment values
-    df_aggregate_payments = pd.DataFrame(df['user_id'].unique(), columns=['user_id'])
+    df_aggregate_payments = pd.DataFrame(df["user_id"].unique(), columns=["user_id"])
 
     for day in days_list:
-        conditional_subset = df[df['hours_since_first_touchpoint'] <= (24*day)]
-        tmp_df = conditional_subset.groupby(by='user_id')['value'].sum().reset_index(name=f'D{day}')
+        conditional_subset = df[df["hours_since_first_touchpoint"] <= (24 * day)]
+        tmp_df = conditional_subset.groupby(by="user_id")["value"].sum().reset_index(name=f"D{day}")
 
-        df_aggregate_payments = df_aggregate_payments.merge(tmp_df, how='left', on='user_id')
+        df_aggregate_payments = df_aggregate_payments.merge(tmp_df, how="left", on="user_id")
 
     return df_aggregate_payments, days_list
 
-st.set_page_config(
-    initial_sidebar_state="expanded" 
-)
+
+st.set_page_config(initial_sidebar_state="expanded")
 
 st.markdown("## How relevant is pLTV for you?")
-st.markdown("""
+st.markdown(
+    """
         This tool analyzes whether your business could potentially benefit from pLTV modeling. 
         It demonstrates how user revenue patterns evolve over time and shows how effectively optimizing for this can have a significant impact on your average user revenue. 
-        """)
+        """
+)
 
 
-st.markdown("""
+st.markdown(
+    """
             *The tool requires a CSV file with user event logs. Each row should represent a unique event with the following columns: 
             **user_id**, **timestamp**, **is_activation**, and **value**.*
-            """)
-st.write('')
-st.markdown("#### What is your average yearly ad spend?")
-
-col1, col2, col3 = st.columns([2, 1, 3])
-
-with col1:
-    avg_yearly_spend = st.number_input(
-        label="Enter your average yearly ad spend in USD",
-        value=None,
-        placeholder="Type a number...",
-        label_visibility="collapsed",
-    )
-st.write('')
-
-st.markdown("#### What is your average ROAS %?")
-col1, col2, col3 = st.columns([1, 2, 3])
-
-with col1:
-    roas_period = st.selectbox(
-        label="Select your ROAS period",
-        options=["D30", "D60", "D90", "D180"],
-        index=None,
-        placeholder="D90",
-        label_visibility="collapsed",
-    )
-
-with col2:
-    regular_roas = st.number_input(
-        label="Enter your average ROAS %",
-        value=None,
-        placeholder="Type a number...",
-        label_visibility="collapsed",
-    )
-st.write('')
+            """
+)
+st.write("")
 
 
-
-st.markdown("#### Choose your system for dataset extraction")
+st.markdown("**Choose your system for dataset extraction**")
 options = ["Firebase", "AppsFlyer", "Shopify", "Other"]
-selection = st.pills("Choose the system you're using", options, selection_mode="single", label_visibility="collapsed")
+selection = st.pills(
+    "Choose your system for dataset extraction", options, selection_mode="single", label_visibility="collapsed"
+)
 
 if selection == "Firebase":
     st.markdown("BigQuery Code:")
     table_name = st.text_input(
-    label="Define the name of your BQ source table (e.g. `project_name.dataset_name.table_name`)",
-    value='',
-    # help="Enter the ID of the source table that contains the data you would like to analyze."
+        label="Define the name of your BQ source table (e.g. `project_name.dataset_name.table_name`)",
+        value="",
+        # help="Enter the ID of the source table that contains the data you would like to analyze."
     )
-        
+
     sampling_on = st.toggle("Adjust sample size", False)
     if sampling_on:
-        percentage = st.slider(
-            label="If you believe your output will be too large, you can use this to create a subsample of your entire user base.",
-            min_value=0,
-            max_value=100,
-            value=100,
-            # help="Select the percentage of users to sample."
-        ) / 100
+        percentage = (
+            st.slider(
+                label="If you believe your output will be too large, you can use this to create a subsample of your entire user base.",
+                min_value=0,
+                max_value=100,
+                value=100,
+                # help="Select the percentage of users to sample."
+            )
+            / 100
+        )
     else:
         percentage = 1
 
     column_names_on = st.toggle("Edit column names", False)
     if column_names_on:
         # Column Names Section
-        st.markdown("If you're not using the standard BQ column names, update the column names for the BigQuery code below according to your own schema.")
+        st.markdown(
+            "If you're not using the standard BQ column names, update the column names for the BigQuery code below according to your own schema."
+        )
 
         # Column Name Inputs
         user_id = st.text_input(
             label="User ID Column",
-            value='user_id',
+            value="user_id",
             # help="Enter the column name that represents the `user_id` in your data table."
         )
         timestamp = st.text_input(
             label="Timestamp Column",
-            value='event_timestamp',
+            value="event_timestamp",
             # help="Enter the column name that represents the timestamp in your data table."
         )
         first_touchpoint = st.text_input(
             label="First Touchpoint Column",
-            value='user_first_touch_timestamp',
+            value="user_first_touch_timestamp",
             # help="Enter the column name that represents the first touchpoint in your data table."
         )
         value = st.text_input(
             label="Value Column",
-            value='event_value_in_usd',
+            value="event_value_in_usd",
             # help="Enter the column name that represents the value in your data table."
         )
     else:
-        user_id = 'user_id'
-        timestamp = 'event_timestamp'
-        first_touchpoint = 'user_first_touch_timestamp'
-        value = 'event_value_in_usd'
+        user_id = "user_id"
+        timestamp = "event_timestamp"
+        first_touchpoint = "user_first_touch_timestamp"
+        value = "event_value_in_usd"
 
-    path = f'''
+    path = f"""
     WITH filtered_data AS (
     SELECT
         {user_id} AS user_id,
@@ -229,22 +211,22 @@ if selection == "Firebase":
     FROM filtered_data source_table
     JOIN sample_users
     USING (user_id)
-    '''
-    
-    st.write('')
-    st.code(path, language='sql')
-    st.markdown("")
+    """
 
+    st.write("")
+    st.code(path, language="sql")
+    st.markdown("")
 
 
 elif selection == "AppsFlyer":
     st.info("AppsFlyer schema is not yet supported. Please select another option.")
 elif selection == "Other":
-    
-    st.write('')
+
+    st.write("")
     st.markdown("Data Requirements and Guidelines:")
 
-    st.markdown("""
+    st.markdown(
+        """
             **1. Data Format**
             - CSV format (separated by commas)
             - historical data of user events a year back from yesterday *(Note: Remember the first touchpoint of the user has to be within this period)*
@@ -257,7 +239,8 @@ elif selection == "Other":
                 - `value`: *float* - the revenue amount produced as part of the event. Even though this is just he value, make sure it is consistent from a currency perspective between all events.
             - Rows
                 - Each row represents a unique event
-        """)
+        """
+    )
 
 
 elif selection == "Shopify":
@@ -266,22 +249,22 @@ elif selection == "Shopify":
     sources_on = st.toggle("Edit source table names", False)
     if sources_on:
         shopify_order_source = st.text_input(
-            label='Define the name of your source table for orders',
+            label="Define the name of your source table for orders",
             value='"postgres"."zz_shopify_shopify"."stg_shopify__order"',
         )
 
         shopify_order_adjustment_source = st.text_input(
-            label='Define the name of your source table for order adjustments',
+            label="Define the name of your source table for order adjustments",
             value='"postgres"."zz_shopify_shopify"."stg_shopify__order_adjustment"',
         )
 
         shopify_refund_source = st.text_input(
-            label='Define the name of your source table for refunds',
+            label="Define the name of your source table for refunds",
             value='"postgres"."zz_shopify_shopify"."stg_shopify__refund"',
         )
 
         shopify_order_tag_source = st.text_input(
-            label='Define the name of your source table for order tags',
+            label="Define the name of your source table for order tags",
             value='"postgres"."zz_shopify_shopify"."stg_shopify__order_tag"',
         )
     else:
@@ -289,20 +272,23 @@ elif selection == "Shopify":
         shopify_order_adjustment_source = '"postgres"."zz_shopify_shopify"."stg_shopify__order_adjustment"'
         shopify_refund_source = '"postgres"."zz_shopify_shopify"."stg_shopify__refund"'
         shopify_order_tag_source = '"postgres"."zz_shopify_shopify"."stg_shopify__order_tag"'
-        
+
     sampling_on = st.toggle("Adjust sample size", False)
     if sampling_on:
-        percentage = st.slider(
-            label="If you believe your output will be too large, you can use this to create a subsample of your entire user base.",
-            min_value=0,
-            max_value=100,
-            value=100,
-            # help="Select the percentage of users to sample."
-        ) / 100
+        percentage = (
+            st.slider(
+                label="If you believe your output will be too large, you can use this to create a subsample of your entire user base.",
+                min_value=0,
+                max_value=100,
+                value=100,
+                # help="Select the percentage of users to sample."
+            )
+            / 100
+        )
     else:
         percentage = 1
 
-    path = f'''
+    path = f"""
     WITH windows AS (
     SELECT 
         user_id,
@@ -399,27 +385,73 @@ SELECT DISTINCT
 FROM filtered_new_vs_repeat source_table
 JOIN sample_users
 USING (user_id)
-    '''
-    
-    st.write('')
-    st.code(path, language='sql')
+    """
+
+    st.write("")
+    st.code(path, language="sql")
     st.markdown("")
 
 
-if 'data' not in st.session_state:
-    st.session_state['data'] = None
+if "data" not in st.session_state:
+    st.session_state["data"] = None
 
-st.write('')
+st.write("")
 
-st.markdown("#### Upload your data")
+st.markdown("**Optional**: Estimate the potential monetary lift")
+with st.expander(label="To provide you with an accurate estimate, the following parameters are needed", expanded=True):
+
+    col1, col2, col3 = st.columns([2, 2, 2])
+
+    with col1:
+        ad_spend_dropdown = [
+            "Less than $100k",
+            "$100k - $300k",
+            "$300k - $600k",
+            "$600k - $1M",
+            "$1M - $1.5M",
+            "$1.5M - $2M",
+            "$3M - $10M",
+            "More than $10M",
+        ]
+
+        avg_monthly_spend = st.selectbox(
+            label="Select your ad spend range",
+            options=ad_spend_dropdown,
+            index=None,
+            placeholder="Select an option",
+            # label_visibility="collapsed",
+        )
+
+    with col2:
+        roas_period = st.selectbox(
+            label="Select the ROAS window",
+            options=["D30", "D60", "D90", "D180"],
+            index=None,
+            placeholder="Example D60",
+            # label_visibility="collapsed",
+        )
+
+    with col3:
+        regular_roas = st.number_input(
+            label="Enter your avg. ROAS",
+            value=None,
+            placeholder="Example 0.95",
+            # label_visibility="collapsed",
+        )
+
+st.write("")
+
+st.markdown("**Upload your data**")
 uploaded_file = st.file_uploader("Upload your data", type="csv", label_visibility="collapsed")
 
-st.write('')
+st.write("")
+
 
 col1, col2, col3 = st.columns([1, 1, 1])
 
 with col2:
-    st.markdown("""
+    st.markdown(
+        """
         <style>
             div.stButton > button {
                 padding-top: 25px !important;
@@ -429,39 +461,35 @@ with col2:
                 font-size: 20px !important; /* Optional: Adjust font size */
             }
         </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
     # Create the button
-    analysis_button = st.button(
-        r"$\textsf{\Large Run Analysis}$",
-        type="primary",
-        use_container_width=True
-    )
+    analysis_button = st.button(r"$\textsf{\Large Run Analysis}$", type="primary", use_container_width=True)
 
 
 if uploaded_file is not None:
     df = load_data(uploaded_file)
     # column_names_check(df)
-    option = 'first_touchpoint'
+    option = "first_touchpoint"
 
     if analysis_button:
         df, days_list = preprocess_data(df, option)
-        
+
         df_aggregate_payments, days_list = prepare_plots(df, days_list)
 
-        st.session_state['df_aggregate_payments'] = df_aggregate_payments
-        st.session_state['days_list'] = days_list
-        st.session_state['avg_yearly_spend'] = avg_yearly_spend
-        st.session_state['roas_period'] = roas_period
-        st.session_state['regular_roas'] = regular_roas
-        
-        
-        if st.success('Data loaded successfully!'):
+        st.session_state["df_aggregate_payments"] = df_aggregate_payments
+        st.session_state["days_list"] = days_list
+
+        if avg_monthly_spend is not None and roas_period is not None and regular_roas is not None:
+            st.session_state["avg_monthly_spend"] = avg_monthly_spend
+            st.session_state["roas_period"] = roas_period
+            st.session_state["regular_roas"] = regular_roas
+
+        if st.success("Data loaded successfully!"):
             time.sleep(2)
             st.switch_page("pages/page_2.py")
 else:
     if analysis_button:
         st.info("Please upload a CSV file to proceed.")
-
-
-
