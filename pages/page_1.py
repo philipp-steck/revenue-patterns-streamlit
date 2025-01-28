@@ -110,7 +110,7 @@ st.markdown(
 st.markdown(
     """
             *The tool requires a CSV file with user event logs. Each row should represent a unique event with the following columns: 
-            **user_id**, **timestamp**, **is_activation**, and **value**.*
+            **user_id**, **timestamp (ISO 8601)**, **is_activation**, and **value**.*
             """
 )
 st.write("")
@@ -234,7 +234,7 @@ elif selection == "Other":
             **2. Data Structure**
             - Columns
                 - `user_id`: *string* - reflects a consistent user ID across your entire csv file.
-                - `timestamp`: *datetime* - a reliable timestamp for each event included in your csv file.
+                - `timestamp`: *datetime* - a reliable timestamp (ISO 8601) for each event included in your csv file.
                 - `is_activation`: *boolean* - indicates if entry represents the first event of a user.
                 - `value`: *float* - the revenue amount produced as part of the event. Even though this is just he value, make sure it is consistent from a currency perspective between all events.
             - Rows
