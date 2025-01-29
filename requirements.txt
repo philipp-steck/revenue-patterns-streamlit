@@ -1,7 +1,8 @@
 matplotlib==3.5.2
 numpy==1.26.3
-pandas==1.4.4
+pandas==2.2.3
 plotly==5.9.0
 seaborn==0.11.2
 streamlit==1.40.1
 streamlit-extras==0.5.0
+dateutil==2.9.0

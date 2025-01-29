@@ -7,6 +7,12 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import streamlit as st
+from dateutil.parser import parse
+from pandas.api.types import (
+    is_any_real_numeric_dtype,
+    is_bool_dtype,
+    is_datetime64_any_dtype,
+)
 
 
 @st.cache_data
@@ -20,24 +26,30 @@ def load_data(uploaded_file):
         return None
 
 
+def convert_timestamps(df, column):
+    if is_datetime64_any_dtype(df[column]):
+        return df[column]
+    else:
+        if is_any_real_numeric_dtype(df[column]):
+            column = df[column].apply(lambda x: datetime.fromtimestamp(x))
+        else:
+            column = df[column].apply(lambda x: parse(x))
+        return column
+
+
 @st.cache_data
-def preprocess_data(df, option):
+def preprocess_data(df):
     """Preprocess the data for analysis."""
 
-    # Lowercase column names
-    df.columns = df.columns.str.lower()
+    df["timestamp"] = convert_timestamps(df, "timestamp")
 
-    if df["timestamp"].dtype == "object":
-        df["timestamp"] = pd.to_datetime(df["timestamp"])
-    else:
-        pass
-
+    # Check if is_activation is a boolean or timestamp
     if "is_activation" not in df.columns:
-        df["first_touchpoint"] = pd.to_datetime(df["first_touchpoint"])
-        df["hours_since_first_touchpoint"] = (df["timestamp"] - df["first_touchpoint"]).dt.total_seconds() / 3600
-    else:
-        df["is_activation"] = df["is_activation"].astype(bool)
+        df = df.rename(
+            columns={"first_touchpoint": "is_activation"}
+        )  # current test file column is called first touchpoint
 
+    if is_bool_dtype(df["is_activation"]) or df["is_activation"].isin([0, 1]).all():
         first_touchpoint = (
             df.loc[df.is_activation]
             .groupby("user_id")["timestamp"]
@@ -48,32 +60,25 @@ def preprocess_data(df, option):
         )
 
         df = df.merge(first_touchpoint, on="user_id", how="left")
-        df["hours_since_first_touchpoint"] = (df["timestamp"] - df["first_touchpoint"]).dt.total_seconds() / 3600
-
-    timestamp_now = pd.Timestamp.now()
-    if df["timestamp"].iloc[0].tzinfo is not None:
-        current_timestamp = timestamp_now.tz_localize(df["timestamp"].iloc[0].tzinfo)
-    else:
-        current_timestamp = timestamp_now
-
-    if df["timestamp"].min() > current_timestamp - pd.Timedelta(hours=(24 * 90)):
-        st.warning(
-            "The data does not contain enough historical data to perform the analysis. Please upload a dataset with at least 90 days of historical data."
+        df["hours_since_first_touchpoint"] = df.apply(
+            lambda x: (x["timestamp"] - x["first_touchpoint"]).total_seconds() / 3600, axis=1
         )
-        st.stop()
-    elif df["first_touchpoint"].min() > current_timestamp - pd.Timedelta(hours=(24 * 120)):
-        df = df[df["first_touchpoint"] < current_timestamp - pd.Timedelta(hours=(24 * 90))]
-        days_list = [1, 3, 7, 14, 21, 30, 60]
-    elif df["first_touchpoint"].min() > current_timestamp - pd.Timedelta(hours=(24 * 180)):
-        df = df[df["first_touchpoint"] < current_timestamp - pd.Timedelta(hours=(24 * 120))]
-        days_list = [1, 3, 7, 14, 30, 60, 90]
     else:
-        df = df[df["first_touchpoint"] < current_timestamp - pd.Timedelta(hours=(24 * 180))]
-        days_list = [1, 3, 7, 14, 30, 60, 90, 180]
+        df["is_activation"] = convert_timestamps(df, "is_activation")
+        df["hours_since_first_touchpoint"] = df.apply(
+            lambda x: (x["timestamp"] - x["is_activation"]).total_seconds() / 3600, axis=1
+        )
 
-    # df = df[df['first_touchpoint'] < current_timestamp - pd.Timedelta(hours=(24*180))]
+    if (df["timestamp"].max() - df["timestamp"].min()).total_seconds() / 3600 < (24 * 90):
+        st.warning(
+            "The date range of the provided data is too short. The analysis may not be accurate and some plots may not be displayed."
+        )
+
+    days_list = [1, 3, 7, 14, 30, 60, 90, 180]
 
     df["value"] = df["value"].fillna(0)
+    df = df[["user_id", "timestamp", "is_activation", "value", "hours_since_first_touchpoint"]].copy()
+
     return df, days_list
 
 
@@ -110,7 +115,7 @@ st.markdown(
 st.markdown(
     """
             *The tool requires a CSV file with user event logs. Each row should represent a unique event with the following columns: 
-            **user_id**, **timestamp (ISO 8601)**, **is_activation**, and **value**.*
+            **user_id**, **timestamp**, **is_activation**, and **value**.*
             """
 )
 st.write("")
@@ -234,7 +239,7 @@ elif selection == "Other":
             **2. Data Structure**
             - Columns
                 - `user_id`: *string* - reflects a consistent user ID across your entire csv file.
-                - `timestamp`: *datetime* - a reliable timestamp (ISO 8601) for each event included in your csv file.
+                - `timestamp`: *datetime* - a reliable timestamp for each event included in your csv file.
                 - `is_activation`: *boolean* - indicates if entry represents the first event of a user.
                 - `value`: *float* - the revenue amount produced as part of the event. Even though this is just he value, make sure it is consistent from a currency perspective between all events.
             - Rows
@@ -471,11 +476,9 @@ with col2:
 
 if uploaded_file is not None:
     df = load_data(uploaded_file)
-    # column_names_check(df)
-    option = "first_touchpoint"
 
     if analysis_button:
-        df, days_list = preprocess_data(df, option)
+        df, days_list = preprocess_data(df)
 
         df_aggregate_payments, days_list = prepare_plots(df, days_list)
 
