@@ -122,7 +122,7 @@ st.write("")
 
 
 st.markdown("**Choose your system for dataset extraction**")
-options = ["Firebase", "AppsFlyer", "Shopify", "Other"]
+options = ["Firebase", "Other"]  # AppsFlyer, Shopify are not yet supported
 selection = st.pills(
     "Choose your system for dataset extraction", options, selection_mode="single", label_visibility="collapsed"
 )
@@ -189,7 +189,7 @@ if selection == "Firebase":
     SELECT
         {user_id} AS user_id,
         {timestamp} AS timestamp,
-        TIMESTAMP_MICROS({first_touchpoint}) AS first_touchpoint,
+        TIMESTAMP_MICROS({first_touchpoint}) AS is_activation,
         {value} AS value,
     FROM `{table_name}`
     WHERE {timestamp} BETWEEN TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 365 DAY) 
