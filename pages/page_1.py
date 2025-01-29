@@ -233,7 +233,7 @@ elif selection == "Other":
     st.markdown(
         """
             **1. Data Format**
-            - CSV format (separated by commas)
+            - CSV format (separated by commas) - Please consider there is a limit of up to 200MB file per CSV file
             - historical data of user events a year back from yesterday *(Note: Remember the first touchpoint of the user has to be within this period)*
             
             **2. Data Structure**
@@ -244,6 +244,7 @@ elif selection == "Other":
                 - `value`: *float* - the revenue amount produced as part of the event. Even though this is just he value, make sure it is consistent from a currency perspective between all events.
             - Rows
                 - Each row represents a unique event
+                
         """
     )
 
