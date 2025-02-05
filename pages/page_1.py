@@ -50,6 +50,7 @@ def preprocess_data(df):
         )  # current test file column is called first touchpoint
 
     if is_bool_dtype(df["is_activation"]) or df["is_activation"].isin([0, 1]).all():
+        df["is_activation"] = df["is_activation"].astype(bool)
         first_touchpoint = (
             df.loc[df.is_activation]
             .groupby("user_id")["timestamp"]
